@@ -35,6 +35,7 @@ public class Teleop extends LinearOpMode {
     public static int MinTicks = 0;
     public static double velocityMultiplier = -.75;
     public static boolean canShoot = true;
+    public static boolean isReset = false;
 
 
 
@@ -97,17 +98,28 @@ public class Teleop extends LinearOpMode {
             Vector2d botPoint = new Vector2d(robot.kachow.drive.getPose().getX(), robot.kachow.drive.getPose().getY());
             robot.kachow.bot_to_target = Math.sqrt(Math.abs((botPoint.x-target.x)*(botPoint.x-target.x) + (botPoint.y-target.y)*(botPoint.y-target.y)));
 
-            shooterVelocity = 1960*((robot.kachow.bot_to_target)/95);
-            if (shooterVelocity<1400){
-                shooterVelocity = 1400;
+            if(robot.kachow.bot_to_target >= 160){
+                shooterVelocity = 2000;
+            } else if (robot.kachow.bot_to_target >= 140){
+                shooterVelocity = 1840;
+            } else if (robot.kachow.bot_to_target >= 120){
+                shooterVelocity = 1700;
+            } else if (robot.kachow.bot_to_target >= 100){
+                shooterVelocity = 1560;
+            } else if (robot.kachow.bot_to_target >= 90){
+                shooterVelocity = 1500;
+            } else if (robot.kachow.bot_to_target >= 80){
+                shooterVelocity = 1460;
+            } else if (robot.kachow.bot_to_target >= 70){
+                shooterVelocity = 1340;
+            } else if (robot.kachow.bot_to_target >= 60){
+                shooterVelocity = 1280;
+            } else if (robot.kachow.bot_to_target >= 50){
+                shooterVelocity = 1300;
             }
-            if (shooterVelocity>1900){
-                shooterVelocity = 1900;
-            }
-            if (botPoint.y <= 60){
-                shooterVelocity = shooterFar;
-            }
-            if(kaze.IsBlue){
+
+
+            /*if(kaze.IsBlue){
                 if(botPoint.y <= 60){
                     target = new Vector2d(3 + (robot.kachow.drive.getVelocity().getXComponent() * velocityMultiplier)
                             , 144+ (robot.kachow.drive.getVelocity().getYComponent() * velocityMultiplier));
@@ -125,6 +137,25 @@ public class Teleop extends LinearOpMode {
                 }
             }
 
+
+             */
+            if(kaze.IsBlue){
+                if(botPoint.y <= 60){
+                    target = new Vector2d(0 + (robot.kachow.drive.getVelocity().getXComponent() * velocityMultiplier)
+                            , 144+ (robot.kachow.drive.getVelocity().getYComponent() * velocityMultiplier));
+                } else {
+                    target = new Vector2d(0 + (robot.kachow.drive.getVelocity().getXComponent() * velocityMultiplier)
+                            , 144+ (robot.kachow.drive.getVelocity().getYComponent() * velocityMultiplier));
+                }
+            } else {
+                if(botPoint.y <= 60){
+                    target = new Vector2d(144 + (robot.kachow.drive.getVelocity().getXComponent() * velocityMultiplier)
+                            , 144+ (robot.kachow.drive.getVelocity().getYComponent() * velocityMultiplier));
+                } else {
+                    target = new Vector2d(144 + (robot.kachow.drive.getVelocity().getXComponent() * velocityMultiplier)
+                            , 144+ (robot.kachow.drive.getVelocity().getYComponent() * velocityMultiplier));
+                }
+            }
 
             if(gamePad1.Dpad_Down.isDown()){
                 robot.leftLift.setPower(1);
@@ -147,8 +178,20 @@ public class Teleop extends LinearOpMode {
 
             switch (State) {
                 case intaking:
-                    robot.kachow.aimTurt(target, gamepad1, gamepad2, robot, 1);
-                    robot.kachow.robotCentric(opModeIsActive(), gamepad1, gamepad2, robot, 1);
+                    telemetry.addData("mode: ", robot.turt.getMode());
+                    if(robot.stateChanged){
+                        robot.turt.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                        robot.turt.setPower(-.5);
+                    }
+                    if(isReset){
+                        robot.kachow.aimTurt(target, gamepad1, gamepad2, robot, 1);
+                        robot.kachow.robotCentric(opModeIsActive(), gamepad1, gamepad2, robot, 1);
+                    } else if (robot.magnet.isPressed()){
+                        robot.turt.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                        robot.turt.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                        robot.turt.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                        isReset = true;
+                    }
                     robot.spinner.setVelocity(shooterVelocity);
                     robot.spinner2.setVelocity(shooterVelocity);
                     //robot.aimer.setPosition(aimerPose);
@@ -171,6 +214,7 @@ public class Teleop extends LinearOpMode {
                     telemetry.addData("IntakePower: ", robot.intake.getPower());
                     if (gamePad1.Right_Bumper.wasJustPressed()) {
                         changeStateTo(state.aimbot);
+                        isReset = false;
                     }
                     break;
 
@@ -285,7 +329,7 @@ public class Teleop extends LinearOpMode {
 
     }
     public void update(){ //place once on start of loop
-
+        robot.stateUpdate(State);
         if(robot.magnet.isPressed()){
             robot.turt.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         }
@@ -302,7 +346,6 @@ public class Teleop extends LinearOpMode {
     }
     public void changeStateTo(state tostate){
         State = tostate;
-        robot.stateUpdate(State);
     }
 
 
